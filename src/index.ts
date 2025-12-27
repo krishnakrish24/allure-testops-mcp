@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
+import http from 'http';
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
-import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import {
   CallToolRequestSchema,
   ListToolsRequestSchema,
@@ -396,12 +396,123 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 });
 
 async function main() {
-  const transport = new StdioServerTransport();
-  await server.connect(transport);
-  console.error('Allure TestOps MCP Server running on stdio');
-  console.error(`Connected to: ${ALLURE_TESTOPS_URL}`);
-  console.error(`Project ID: ${PROJECT_ID}`);
-  console.error(`Registered ${allTools.length} tools`);
+  const PORT = process.env.PORT || 3000;
+  
+  const httpServer = http.createServer(async (req, res) => {
+    // Set CORS headers
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    res.setHeader('Content-Type', 'application/json');
+
+    // Handle OPTIONS requests
+    if (req.method === 'OPTIONS') {
+      res.writeHead(200);
+      res.end();
+      return;
+    }
+
+    // Handle POST requests for MCP tools
+    if (req.method === 'POST') {
+      let body = '';
+      
+      req.on('data', (chunk) => {
+        body += chunk.toString();
+      });
+
+      req.on('end', async () => {
+        try {
+          const request = JSON.parse(body);
+          const { method, params } = request;
+
+          // Handle ListTools request
+          if (method === 'tools/list' || req.url === '/tools') {
+            res.writeHead(200);
+            res.end(JSON.stringify({
+              tools: allTools,
+            }));
+            return;
+          }
+
+          // Handle CallTool request
+          if (method === 'tools/call' || req.url === '/call') {
+            const { name, arguments: args } = params;
+            
+            const handler = toolHandlerMap.get(name);
+            if (!handler) {
+              res.writeHead(404);
+              res.end(JSON.stringify({
+                error: `Unknown tool: ${name}`,
+              }));
+              return;
+            }
+
+            try {
+              const result = await handler(allureClient, name, args, PROJECT_ID!);
+              res.writeHead(200);
+              res.end(JSON.stringify({
+                content: [{ type: 'text', text: result }],
+              }));
+            } catch (error: any) {
+              res.writeHead(500);
+              res.end(JSON.stringify({
+                error: error.message,
+              }));
+            }
+            return;
+          }
+
+          // Default response
+          res.writeHead(404);
+          res.end(JSON.stringify({
+            error: 'Unknown method',
+          }));
+        } catch (error: any) {
+          res.writeHead(400);
+          res.end(JSON.stringify({
+            error: 'Invalid request: ' + error.message,
+          }));
+        }
+      });
+      return;
+    }
+
+    // Handle GET /health for health checks
+    if (req.method === 'GET' && req.url === '/health') {
+      res.writeHead(200);
+      res.end(JSON.stringify({ status: 'ok' }));
+      return;
+    }
+
+    // Handle GET /tools to list available tools
+    if (req.method === 'GET' && req.url === '/tools') {
+      res.writeHead(200);
+      res.end(JSON.stringify({
+        tools: allTools,
+      }));
+      return;
+    }
+
+    res.writeHead(404);
+    res.end(JSON.stringify({
+      error: 'Not found',
+    }));
+  });
+
+  httpServer.listen(Number(PORT), () => {
+    console.error(`Allure TestOps MCP Server running on HTTP port ${PORT}`);
+    console.error(`Connected to: ${ALLURE_TESTOPS_URL}`);
+    console.error(`Project ID: ${PROJECT_ID}`);
+    console.error(`Registered ${allTools.length} tools`);
+    console.error(`Health check: GET http://localhost:${PORT}/health`);
+    console.error(`List tools: GET http://localhost:${PORT}/tools`);
+    console.error(`Call tool: POST http://localhost:${PORT}/call`);
+  });
+
+  httpServer.on('error', (error) => {
+    console.error('Server error:', error);
+    process.exit(1);
+  });
 }
 
 main().catch((error) => {
