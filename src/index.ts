@@ -476,7 +476,7 @@ async function main() {
 
           // Check if all messages are responses/notifications (no requests)
           const allResponsesOrNotifications = messageArray.every(
-            (msg: any) => !msg.method && !('id' in msg && msg.method === undefined)
+            (msg: any) => !msg.method
           );
 
           if (allResponsesOrNotifications) {
@@ -487,11 +487,28 @@ async function main() {
           }
 
           // Handle requests - use SSE stream
-          res.writeHead(200, {
+          const responseHeaders: Record<string, string> = {
             'Content-Type': 'text/event-stream',
             'Cache-Control': 'no-cache',
             'Connection': 'keep-alive',
-          });
+          };
+
+          let newSessionId: string | undefined;
+
+          // Check for initialization to generate session ID
+          for (const message of messageArray) {
+            if (message.method === 'initialize') {
+              newSessionId = nanoid(32);
+              sessions.set(newSessionId, {
+                createdAt: Date.now(),
+                lastActivity: Date.now(),
+              });
+              responseHeaders['Mcp-Session-Id'] = newSessionId;
+              break;
+            }
+          }
+
+          res.writeHead(200, responseHeaders);
 
           let eventId = 0;
 
@@ -501,13 +518,6 @@ async function main() {
               let response: any;
 
               if (message.method === 'initialize') {
-                // Generate session ID on initialization
-                const newSessionId = nanoid(32);
-                sessions.set(newSessionId, {
-                  createdAt: Date.now(),
-                  lastActivity: Date.now(),
-                });
-
                 response = {
                   jsonrpc: '2.0',
                   id: message.id,
@@ -522,25 +532,16 @@ async function main() {
                     },
                   },
                 };
-
-                // Send session ID in header for initialization response
-                if (message.id) {
-                  res.write(`data: ${JSON.stringify(response)}\n`);
-                  res.write(`id: ${eventId++}\n\n`);
-                  // Also include session ID in a comment or separate event
-                  res.write(`data: {"mcp-session-id": "${newSessionId}"}\n`);
-                  res.write(`id: ${eventId++}\n\n`);
-                }
+                res.write(`data: ${JSON.stringify(response)}\n\n`);
               } else if (message.method === 'tools/list') {
                 response = {
                   jsonrpc: '2.0',
                   id: message.id,
                   result: { tools: allTools },
                 };
-                res.write(`data: ${JSON.stringify(response)}\n`);
-                res.write(`id: ${eventId++}\n\n`);
+                res.write(`data: ${JSON.stringify(response)}\n\n`);
               } else if (message.method === 'tools/call') {
-                const { name, arguments: args } = message.params;
+                const { name, arguments: args } = message.params || {};
                 const handler = toolHandlerMap.get(name);
 
                 if (!handler) {
@@ -565,16 +566,14 @@ async function main() {
                     };
                   }
                 }
-                res.write(`data: ${JSON.stringify(response)}\n`);
-                res.write(`id: ${eventId++}\n\n`);
+                res.write(`data: ${JSON.stringify(response)}\n\n`);
               } else {
                 response = {
                   jsonrpc: '2.0',
                   id: message.id,
                   error: { code: -32601, message: 'Method not found' },
                 };
-                res.write(`data: ${JSON.stringify(response)}\n`);
-                res.write(`id: ${eventId++}\n\n`);
+                res.write(`data: ${JSON.stringify(response)}\n\n`);
               }
             } catch (error: any) {
               const errorResponse = {
@@ -582,8 +581,8 @@ async function main() {
                 id: message.id,
                 error: { code: -32700, message: 'Parse error', data: error.message },
               };
-              res.write(`data: ${JSON.stringify(errorResponse)}\n`);
-              res.write(`id: ${eventId++}\n\n`);
+              res.write(`data: ${JSON.stringify(errorResponse)}\n\n`);
+              eventId++;
             }
           }
 
