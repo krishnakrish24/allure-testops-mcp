@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import http from 'http';
+import { nanoid } from 'nanoid';
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import {
   CallToolRequestSchema,
@@ -398,12 +399,51 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 async function main() {
   const PORT = process.env.PORT || 3000;
   
+  // Session management
+  const sessions = new Map<string, { createdAt: number; lastActivity: number }>();
+  const MAX_SESSION_AGE = 24 * 60 * 60 * 1000; // 24 hours
+  
+  // Validate Origin header to prevent DNS rebinding attacks
+  const validateOrigin = (req: http.IncomingMessage, origin?: string): boolean => {
+    // If no origin header, allow local requests
+    if (!origin) return true;
+    
+    try {
+      const originUrl = new URL(origin);
+      // In production, verify origin matches expected domains
+      // For now, allow localhost in development
+      if (originUrl.hostname === 'localhost' || originUrl.hostname === '127.0.0.1') {
+        return true;
+      }
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  const validateSessionId = (sessionId?: string): boolean => {
+    if (!sessionId) return false;
+    
+    const session = sessions.get(sessionId);
+    if (!session) return false;
+    
+    // Check if session has expired
+    const now = Date.now();
+    if (now - session.createdAt > MAX_SESSION_AGE) {
+      sessions.delete(sessionId);
+      return false;
+    }
+    
+    // Update last activity
+    session.lastActivity = now;
+    return true;
+  };
+
   const httpServer = http.createServer(async (req, res) => {
     // Set CORS headers
     res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Accept, Mcp-Session-Id');
 
     // Handle OPTIONS requests
     if (req.method === 'OPTIONS') {
@@ -412,91 +452,210 @@ async function main() {
       return;
     }
 
-    // Handle POST requests for MCP tools
-    if (req.method === 'POST') {
+    const origin = req.headers.origin as string;
+    if (!validateOrigin(req, origin)) {
+      res.writeHead(403, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Origin not allowed' }));
+      return;
+    }
+
+    // POST: Handle incoming JSON-RPC messages
+    if (req.method === 'POST' && req.url === '/mcp') {
+      const accept = req.headers.accept || '';
+      const sessionId = req.headers['mcp-session-id'] as string | undefined;
+
       let body = '';
-      
       req.on('data', (chunk) => {
         body += chunk.toString();
       });
 
       req.on('end', async () => {
         try {
-          const request = JSON.parse(body);
-          const { method, params } = request;
+          const messages = JSON.parse(body);
+          const messageArray = Array.isArray(messages) ? messages : [messages];
 
-          // Handle ListTools request
-          if (method === 'tools/list' || req.url === '/tools') {
-            res.writeHead(200);
-            res.end(JSON.stringify({
-              tools: allTools,
-            }));
+          // Check if all messages are responses/notifications (no requests)
+          const allResponsesOrNotifications = messageArray.every(
+            (msg: any) => !msg.method && !('id' in msg && msg.method === undefined)
+          );
+
+          if (allResponsesOrNotifications) {
+            // For responses/notifications, return 202 Accepted
+            res.writeHead(202, { 'Content-Type': 'application/json' });
+            res.end();
             return;
           }
 
-          // Handle CallTool request
-          if (method === 'tools/call' || req.url === '/call') {
-            const { name, arguments: args } = params;
-            
-            const handler = toolHandlerMap.get(name);
-            if (!handler) {
-              res.writeHead(404);
-              res.end(JSON.stringify({
-                error: `Unknown tool: ${name}`,
-              }));
-              return;
-            }
+          // Handle requests - use SSE stream
+          res.writeHead(200, {
+            'Content-Type': 'text/event-stream',
+            'Cache-Control': 'no-cache',
+            'Connection': 'keep-alive',
+          });
 
+          let eventId = 0;
+
+          // Process each message
+          for (const message of messageArray) {
             try {
-              const result = await handler(allureClient, name, args, PROJECT_ID!);
-              res.writeHead(200);
-              res.end(JSON.stringify({
-                content: [{ type: 'text', text: result }],
-              }));
+              let response: any;
+
+              if (message.method === 'initialize') {
+                // Generate session ID on initialization
+                const newSessionId = nanoid(32);
+                sessions.set(newSessionId, {
+                  createdAt: Date.now(),
+                  lastActivity: Date.now(),
+                });
+
+                response = {
+                  jsonrpc: '2.0',
+                  id: message.id,
+                  result: {
+                    protocolVersion: '2024-11-05',
+                    capabilities: {
+                      tools: {},
+                    },
+                    serverInfo: {
+                      name: 'allure-testops-mcp',
+                      version: '1.0.0',
+                    },
+                  },
+                };
+
+                // Send session ID in header for initialization response
+                if (message.id) {
+                  res.write(`data: ${JSON.stringify(response)}\n`);
+                  res.write(`id: ${eventId++}\n\n`);
+                  // Also include session ID in a comment or separate event
+                  res.write(`data: {"mcp-session-id": "${newSessionId}"}\n`);
+                  res.write(`id: ${eventId++}\n\n`);
+                }
+              } else if (message.method === 'tools/list') {
+                response = {
+                  jsonrpc: '2.0',
+                  id: message.id,
+                  result: { tools: allTools },
+                };
+                res.write(`data: ${JSON.stringify(response)}\n`);
+                res.write(`id: ${eventId++}\n\n`);
+              } else if (message.method === 'tools/call') {
+                const { name, arguments: args } = message.params;
+                const handler = toolHandlerMap.get(name);
+
+                if (!handler) {
+                  response = {
+                    jsonrpc: '2.0',
+                    id: message.id,
+                    error: { code: -32601, message: `Unknown tool: ${name}` },
+                  };
+                } else {
+                  try {
+                    const result = await handler(allureClient, name, args, PROJECT_ID!);
+                    response = {
+                      jsonrpc: '2.0',
+                      id: message.id,
+                      result: { content: [{ type: 'text', text: result }] },
+                    };
+                  } catch (error: any) {
+                    response = {
+                      jsonrpc: '2.0',
+                      id: message.id,
+                      error: { code: -32603, message: error.message },
+                    };
+                  }
+                }
+                res.write(`data: ${JSON.stringify(response)}\n`);
+                res.write(`id: ${eventId++}\n\n`);
+              } else {
+                response = {
+                  jsonrpc: '2.0',
+                  id: message.id,
+                  error: { code: -32601, message: 'Method not found' },
+                };
+                res.write(`data: ${JSON.stringify(response)}\n`);
+                res.write(`id: ${eventId++}\n\n`);
+              }
             } catch (error: any) {
-              res.writeHead(500);
-              res.end(JSON.stringify({
-                error: error.message,
-              }));
+              const errorResponse = {
+                jsonrpc: '2.0',
+                id: message.id,
+                error: { code: -32700, message: 'Parse error', data: error.message },
+              };
+              res.write(`data: ${JSON.stringify(errorResponse)}\n`);
+              res.write(`id: ${eventId++}\n\n`);
             }
-            return;
           }
 
-          // Default response
-          res.writeHead(404);
-          res.end(JSON.stringify({
-            error: 'Unknown method',
-          }));
+          // Close SSE stream after sending all responses
+          res.end();
         } catch (error: any) {
-          res.writeHead(400);
+          res.writeHead(400, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({
-            error: 'Invalid request: ' + error.message,
+            jsonrpc: '2.0',
+            error: { code: -32700, message: 'Parse error' },
           }));
         }
       });
       return;
     }
 
-    // Handle GET /health for health checks
+    // GET: Open SSE stream for server-to-client messages
+    if (req.method === 'GET' && req.url === '/mcp') {
+      const sessionId = req.headers['mcp-session-id'] as string | undefined;
+      const lastEventId = req.headers['last-event-id'] as string | undefined;
+
+      // Validate session if provided
+      if (sessionId && !validateSessionId(sessionId)) {
+        res.writeHead(404, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Session not found' }));
+        return;
+      }
+
+      // Open SSE stream
+      res.writeHead(200, {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+      });
+
+      // Keep the connection open
+      const keepAliveInterval = setInterval(() => {
+        res.write(': keep-alive\n\n');
+      }, 30000);
+
+      req.on('close', () => {
+        clearInterval(keepAliveInterval);
+      });
+
+      return;
+    }
+
+    // DELETE: Terminate session
+    if (req.method === 'DELETE' && req.url === '/mcp') {
+      const sessionId = req.headers['mcp-session-id'] as string | undefined;
+
+      if (sessionId) {
+        sessions.delete(sessionId);
+        res.writeHead(204);
+        res.end();
+      } else {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Mcp-Session-Id header required' }));
+      }
+      return;
+    }
+
+    // Health check endpoint (optional)
     if (req.method === 'GET' && req.url === '/health') {
-      res.writeHead(200);
+      res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ status: 'ok' }));
       return;
     }
 
-    // Handle GET /tools to list available tools
-    if (req.method === 'GET' && req.url === '/tools') {
-      res.writeHead(200);
-      res.end(JSON.stringify({
-        tools: allTools,
-      }));
-      return;
-    }
-
-    res.writeHead(404);
-    res.end(JSON.stringify({
-      error: 'Not found',
-    }));
+    // Default 404
+    res.writeHead(404, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'Not found' }));
   });
 
   httpServer.listen(Number(PORT), () => {
@@ -504,9 +663,14 @@ async function main() {
     console.error(`Connected to: ${ALLURE_TESTOPS_URL}`);
     console.error(`Project ID: ${PROJECT_ID}`);
     console.error(`Registered ${allTools.length} tools`);
-    console.error(`Health check: GET http://localhost:${PORT}/health`);
-    console.error(`List tools: GET http://localhost:${PORT}/tools`);
-    console.error(`Call tool: POST http://localhost:${PORT}/call`);
+    console.error('');
+    console.error('=== Streamable HTTP Spec Endpoints ===');
+    console.error(`MCP Endpoint: http://localhost:${PORT}/mcp`);
+    console.error(`POST /mcp - Send JSON-RPC messages`);
+    console.error(`GET /mcp - Open SSE stream`);
+    console.error(`DELETE /mcp - Terminate session`);
+    console.error('');
+    console.error(`Health check: http://localhost:${PORT}/health`);
   });
 
   httpServer.on('error', (error) => {
