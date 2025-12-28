@@ -8,6 +8,7 @@ import {
   ListToolsRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
 import { createAllureClient, AllureClient } from './allure-client.js';
+import { enrichAllToolSchemas } from './schema-enrichment.js';
 import { businessMetricControllerTools, handleBusinessMetricControllerTool } from './controllers/business-metric-controller.js';
 import { categoryControllerTools, handleCategoryControllerTool } from './controllers/category-controller.js';
 import { categoryMatcherControllerTools, handleCategoryMatcherControllerTool } from './controllers/category-matcher-controller.js';
@@ -326,7 +327,9 @@ const toolHandlerMap = new Map<string, ToolHandler>();
 const allTools: any[] = [];
 
 for (const controller of toolControllers) {
-  allTools.push(...controller.tools);
+  // Enrich tools with better schema information for LLMs
+  const enrichedTools = enrichAllToolSchemas(controller.tools);
+  allTools.push(...enrichedTools);
   for (const tool of controller.tools) {
     toolHandlerMap.set(tool.name, controller.handler);
   }
