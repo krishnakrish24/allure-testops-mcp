@@ -252,7 +252,7 @@ export const schemaEnrichment: Record<string, Record<string, any>> = {
   'create_6': {
     body: {
       type: 'object',
-      description: 'Test result creation request (V2)',
+      description: 'Test result creation request (V2). IMPORTANT: Do NOT include the id field from test case - the API generates result IDs automatically.',
       properties: {
         launchId: {
           type: 'integer',
@@ -397,17 +397,107 @@ export const schemaEnrichment: Record<string, Record<string, any>> = {
         },
         scenario: {
           type: 'object',
-          description: 'Test scenario (BDD) details (optional)',
+          description: 'Test scenario (BDD/Flow) details (optional). Do NOT include id field from test case.',
           properties: {
             steps: {
               type: 'array',
-              description: 'Scenario steps',
+              description: 'Scenario steps (each step can be trigger, action, assertion, etc)',
               items: {
                 type: 'object',
                 properties: {
-                  keyword: { type: 'string' },
-                  name: { type: 'string' },
-                  status: { type: 'string' }
+                  type: { 
+                    type: 'string',
+                    description: 'Step type (e.g., "trigger", "action", "assertion")'
+                  },
+                  start: { 
+                    type: 'integer',
+                    format: 'int64',
+                    description: 'Step start time in milliseconds'
+                  },
+                  stop: { 
+                    type: 'integer',
+                    format: 'int64',
+                    description: 'Step stop time in milliseconds'
+                  },
+                  duration: { 
+                    type: 'integer',
+                    format: 'int64',
+                    description: 'Step duration in milliseconds'
+                  },
+                  status: { 
+                    type: 'string',
+                    enum: ['passed', 'failed', 'skipped', 'stopped'],
+                    description: 'Step status'
+                  },
+                  body: { 
+                    type: 'string',
+                    description: 'Step description/body (optional)'
+                  },
+                  message: { 
+                    type: 'string',
+                    description: 'Step message/failure reason (optional)'
+                  },
+                  trace: { 
+                    type: 'string',
+                    description: 'Step stack trace (optional)'
+                  },
+                  parameters: { 
+                    type: 'array',
+                    description: 'Step parameters (optional)',
+                    items: {
+                      type: 'object',
+                      properties: {
+                        name: { type: 'string' },
+                        value: { type: 'string' },
+                        hidden: { type: 'boolean' },
+                        excluded: { type: 'boolean' }
+                      }
+                    }
+                  },
+                  attachment: { 
+                    type: 'object',
+                    description: 'Step attachment (optional)',
+                    properties: {
+                      id: { 
+                        type: 'integer',
+                        format: 'int64',
+                        description: 'Attachment ID'
+                      },
+                      name: { 
+                        type: 'string',
+                        description: 'Attachment file name'
+                      },
+                      contentType: { 
+                        type: 'string',
+                        description: 'MIME type'
+                      },
+                      contentLength: { 
+                        type: 'integer',
+                        format: 'int64',
+                        description: 'File size in bytes'
+                      },
+                      entity: { 
+                        type: 'string',
+                        description: 'Entity type'
+                      },
+                      textContent: { 
+                        type: 'string',
+                        description: 'Text content'
+                      },
+                      htmlTable: { 
+                        type: 'string',
+                        description: 'HTML table content'
+                      },
+                      base64: { 
+                        type: 'string',
+                        description: 'Base64 encoded file content'
+                      },
+                      missed: { 
+                        type: 'boolean',
+                        description: 'Whether attachment is missed'
+                      }
+                    }
+                  }
                 }
               }
             }
