@@ -729,6 +729,11 @@ export const schemaEnrichment: Record<string, Record<string, any>> = {
       type: 'object',
       description: 'Upload metadata (LaunchExistingUploadDto) - sent as JSON file field with Content-Disposition header in multipart request (required)',
       properties: {
+        projectId: {
+          type: 'integer',
+          format: 'int64',
+          description: 'Project ID (required)'
+        },
         envVarValues: {
           type: 'array',
           description: 'Environment variable values (optional)',
@@ -755,7 +760,7 @@ export const schemaEnrichment: Record<string, Record<string, any>> = {
     },
     file: {
       type: 'string',
-      description: 'Base64-encoded ZIP file containing test results in Allure JSON format (required)'
+      description: 'Base64-encoded JSON file containing test results in Allure JSON format (required)'
     }
   },
 
@@ -769,6 +774,11 @@ export const schemaEnrichment: Record<string, Record<string, any>> = {
       type: 'object',
       description: 'Upload metadata (LaunchExistingUploadDto) - sent as JSON file field with Content-Disposition header in multipart request (required)',
       properties: {
+        projectId: {
+          type: 'integer',
+          format: 'int64',
+          description: 'Project ID (required)'
+        },
         envVarValues: {
           type: 'array',
           description: 'Environment variable values (optional)',
@@ -809,6 +819,11 @@ export const schemaEnrichment: Record<string, Record<string, any>> = {
       type: 'object',
       description: 'Upload metadata (LaunchExistingUploadDto) - sent as JSON file field with Content-Disposition header in multipart request (required)',
       properties: {
+        projectId: {
+          type: 'integer',
+          format: 'int64',
+          description: 'Project ID (required)'
+        },
         envVarValues: {
           type: 'array',
           description: 'Environment variable values (optional)',
