@@ -197,8 +197,8 @@ export const schemaEnrichment: Record<string, Record<string, any>> = {
         },
         status: {
           type: 'string',
-          enum: ['PASSED', 'FAILED', 'SKIPPED', 'STOPPED', 'INTERRUPTED'],
-          description: 'Test status (required)'
+          enum: ['passed', 'failed', 'skipped', 'broken', 'unknown'],
+          description: 'Test status (required) - must be lowercase: passed, failed, skipped, broken, or unknown'
         },
         description: {
           type: 'string',
@@ -265,8 +265,8 @@ export const schemaEnrichment: Record<string, Record<string, any>> = {
         },
         status: {
           type: 'string',
-          enum: ['PASSED', 'FAILED', 'SKIPPED', 'STOPPED', 'INTERRUPTED'],
-          description: 'Test status (required)'
+          enum: ['passed', 'failed', 'skipped', 'broken', 'unknown'],
+          description: 'Test status (required) - must be lowercase: passed, failed, skipped, broken, or unknown'
         },
         fullName: {
           type: 'string',
@@ -421,8 +421,8 @@ export const schemaEnrichment: Record<string, Record<string, any>> = {
                   },
                   status: {
                     type: 'string',
-                    enum: ['PASSED', 'FAILED', 'SKIPPED', 'STOPPED', 'INTERRUPTED'],
-                    description: 'Step execution status (optional)'
+                    enum: ['passed', 'failed', 'skipped', 'broken', 'unknown'],
+                    description: 'Step execution status (optional) - must be lowercase: passed, failed, skipped, broken, or unknown'
                   },
                   start: {
                     type: 'integer',
