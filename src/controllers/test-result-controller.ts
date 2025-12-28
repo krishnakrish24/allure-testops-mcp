@@ -239,7 +239,11 @@ export async function handleTestResultControllerTool(
 
       case 'allure_create_6': {
         const { body } = args;
+        console.error(`[allure_create_6] Body type:`, typeof body);
+        console.error(`[allure_create_6] Body keys:`, Object.keys(body || {}));
+        console.error(`[allure_create_6] Sending to /api/testresult:`, JSON.stringify(body, null, 2));
         const result = await client.post(`/api/testresult`, body);
+        console.error(`[allure_create_6] Success response:`, JSON.stringify(result, null, 2).substring(0, 200));
         return JSON.stringify(result, null, 2);
       }
 
