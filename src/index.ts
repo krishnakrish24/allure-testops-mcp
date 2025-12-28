@@ -682,3 +682,64 @@ async function main() {
       // Keep the connection open
       const keepAliveInterval = setInterval(() => {
         res.write(': keep-alive\n\n');
+      }, 30000);
+
+      req.on('close', () => {
+        clearInterval(keepAliveInterval);
+      });
+
+      return;
+    }
+
+    // DELETE: Terminate session
+    if (req.method === 'DELETE' && req.url === '/mcp') {
+      const sessionId = req.headers['mcp-session-id'] as string | undefined;
+
+      if (sessionId) {
+        sessions.delete(sessionId);
+        res.writeHead(204);
+        res.end();
+      } else {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Mcp-Session-Id header required' }));
+      }
+      return;
+    }
+
+    // Health check endpoint (optional)
+    if (req.method === 'GET' && req.url === '/health') {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ status: 'ok' }));
+      return;
+    }
+
+    // Default 404
+    res.writeHead(404, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'Not found' }));
+  });
+
+  httpServer.listen(Number(PORT), () => {
+    console.error(`Allure TestOps MCP Server running on HTTP port ${PORT}`);
+    console.error(`Connected to: ${ALLURE_TESTOPS_URL}`);
+    console.error(`Project ID: ${PROJECT_ID}`);
+    console.error(`Registered ${allTools.length} tools`);
+    console.error('');
+    console.error('=== Streamable HTTP Spec Endpoints ===');
+    console.error(`MCP Endpoint: http://localhost:${PORT}/mcp`);
+    console.error(`POST /mcp - Send JSON-RPC messages`);
+    console.error(`GET /mcp - Open SSE stream`);
+    console.error(`DELETE /mcp - Terminate session`);
+    console.error('');
+    console.error(`Health check: http://localhost:${PORT}/health`);
+  });
+
+  httpServer.on('error', (error) => {
+    console.error('Server error:', error);
+    process.exit(1);
+  });
+}
+
+main().catch((error) => {
+  console.error('Fatal error:', error);
+  process.exit(1);
+});
