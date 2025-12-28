@@ -38,17 +38,62 @@ export const schemaEnrichment: Record<string, Record<string, any>> = {
         },
         tags: {
           type: 'array',
-          description: 'Launch tags for filtering and organization (optional)',
+          description: 'Launch tags for categorization (optional)',
           items: {
             type: 'object',
             properties: {
               name: { 
                 type: 'string',
-                description: 'Tag name'
+                description: 'Tag name (required for each tag)'
               },
-              value: { 
+              id: { 
+                type: 'integer',
+                format: 'int64',
+                description: 'Tag ID (optional, for referencing existing tags)'
+              }
+            },
+            required: ['name']
+          }
+        },
+        links: {
+          type: 'array',
+          description: 'External links (optional)',
+          items: {
+            type: 'object',
+            properties: {
+              name: { 
                 type: 'string',
-                description: 'Tag value'
+                description: 'Link name/title'
+              },
+              url: { 
+                type: 'string',
+                description: 'Link URL'
+              },
+              type: { 
+                type: 'string',
+                description: 'Link type (e.g., "link", "issue")'
+              }
+            }
+          }
+        },
+        issues: {
+          type: 'array',
+          description: 'Associated issues (optional)',
+          items: {
+            type: 'object',
+            properties: {
+              name: { 
+                type: 'string',
+                description: 'Issue name'
+              },
+              url: { 
+                type: 'string',
+                description: 'Issue URL'
+              },
+              integrationId: { 
+                type: 'integer',
+                format: 'int64',
+                description: 'Integration ID for issue tracking system'
               }
             }
           }
@@ -98,6 +143,37 @@ export const schemaEnrichment: Record<string, Record<string, any>> = {
         external: {
           type: 'boolean',
           description: 'Whether the launch is external (optional)'
+        },
+        tags: {
+          type: 'array',
+          description: 'Launch tags (optional)',
+          items: {
+            type: 'object',
+            properties: {
+              name: { 
+                type: 'string',
+                description: 'Tag name'
+              },
+              id: { 
+                type: 'integer',
+                format: 'int64',
+                description: 'Tag ID (optional)'
+              }
+            },
+            required: ['name']
+          }
+        },
+        links: {
+          type: 'array',
+          description: 'External links (optional)',
+          items: {
+            type: 'object',
+            properties: {
+              name: { type: 'string' },
+              url: { type: 'string' },
+              type: { type: 'string' }
+            }
+          }
         }
       },
       required: ['name', 'projectId']
@@ -169,6 +245,176 @@ export const schemaEnrichment: Record<string, Record<string, any>> = {
         }
       },
       required: ['projectId', 'name']
+    }
+  },
+
+  // ============ TEST RESULT CONTROLLER (V2) ============
+  'create_6': {
+    body: {
+      type: 'object',
+      description: 'Test result creation request (V2)',
+      properties: {
+        launchId: {
+          type: 'integer',
+          format: 'int64',
+          description: 'Launch ID (required)'
+        },
+        name: {
+          type: 'string',
+          description: 'Test result name (required)'
+        },
+        status: {
+          type: 'string',
+          enum: ['PASSED', 'FAILED', 'SKIPPED', 'STOPPED', 'INTERRUPTED'],
+          description: 'Test status (required)'
+        },
+        fullName: {
+          type: 'string',
+          description: 'Full test name including class/module path (optional)'
+        },
+        testCaseId: {
+          type: 'integer',
+          format: 'int64',
+          description: 'Test case ID to link with this result (optional)'
+        },
+        testLayerId: {
+          type: 'integer',
+          format: 'int64',
+          description: 'Test layer ID for grouping (optional)'
+        },
+        description: {
+          type: 'string',
+          description: 'Test description (optional)'
+        },
+        expectedResult: {
+          type: 'string',
+          description: 'Expected result (optional)'
+        },
+        precondition: {
+          type: 'string',
+          description: 'Precondition (optional)'
+        },
+        message: {
+          type: 'string',
+          description: 'Test result message/failure reason (optional)'
+        },
+        trace: {
+          type: 'string',
+          description: 'Stack trace for failures (optional)'
+        },
+        start: {
+          type: 'integer',
+          format: 'int64',
+          description: 'Start time in milliseconds (optional)'
+        },
+        stop: {
+          type: 'integer',
+          format: 'int64',
+          description: 'Stop time in milliseconds (optional)'
+        },
+        duration: {
+          type: 'integer',
+          format: 'int64',
+          description: 'Duration in milliseconds (optional)'
+        },
+        manual: {
+          type: 'boolean',
+          description: 'Whether this is a manual test (optional)'
+        },
+        external: {
+          type: 'boolean',
+          description: 'Whether this is external test result (optional)'
+        },
+        tags: {
+          type: 'array',
+          description: 'Test tags for categorization (optional)',
+          items: {
+            type: 'object',
+            properties: {
+              name: { 
+                type: 'string',
+                description: 'Tag name'
+              },
+              id: { 
+                type: 'integer',
+                format: 'int64',
+                description: 'Tag ID'
+              }
+            }
+          }
+        },
+        links: {
+          type: 'array',
+          description: 'External links (optional)',
+          items: {
+            type: 'object',
+            properties: {
+              name: { 
+                type: 'string',
+                description: 'Link title'
+              },
+              url: { 
+                type: 'string',
+                description: 'Link URL'
+              },
+              type: { 
+                type: 'string',
+                description: 'Link type'
+              }
+            }
+          }
+        },
+        members: {
+          type: 'array',
+          description: 'Test assignees/members (optional)',
+          items: {
+            type: 'object',
+            properties: {
+              name: { 
+                type: 'string',
+                description: 'Member name/login'
+              }
+            }
+          }
+        },
+        customFields: {
+          type: 'array',
+          description: 'Custom field values (optional)',
+          items: {
+            type: 'object',
+            properties: {
+              id: { 
+                type: 'integer',
+                format: 'int64',
+                description: 'Custom field ID'
+              },
+              value: { 
+                type: 'string',
+                description: 'Custom field value'
+              }
+            }
+          }
+        },
+        scenario: {
+          type: 'object',
+          description: 'Test scenario (BDD) details (optional)',
+          properties: {
+            steps: {
+              type: 'array',
+              description: 'Scenario steps',
+              items: {
+                type: 'object',
+                properties: {
+                  keyword: { type: 'string' },
+                  name: { type: 'string' },
+                  status: { type: 'string' }
+                }
+              }
+            }
+          }
+        }
+      },
+      required: ['launchId', 'name', 'status']
     }
   },
 
