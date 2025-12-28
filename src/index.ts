@@ -464,6 +464,8 @@ async function main() {
       const accept = req.headers.accept || '';
       const sessionId = req.headers['mcp-session-id'] as string | undefined;
 
+      console.error(`[POST /mcp] Incoming request, Session ID: ${sessionId || 'none'}`);
+
       let body = '';
       req.on('data', (chunk) => {
         body += chunk.toString();
@@ -473,6 +475,11 @@ async function main() {
         try {
           const messages = JSON.parse(body);
           const messageArray = Array.isArray(messages) ? messages : [messages];
+          
+          console.error(`[POST /mcp] Parsed ${messageArray.length} message(s)`);
+          messageArray.forEach((msg: any, idx: number) => {
+            console.error(`[POST /mcp] Message ${idx}: method=${msg.method}, id=${msg.id}`);
+          });
 
           // Check if all messages are responses/notifications (no requests)
           const allResponsesOrNotifications = messageArray.every(
@@ -483,6 +490,30 @@ async function main() {
             // For responses/notifications, return 202 Accepted
             res.writeHead(202, { 'Content-Type': 'application/json' });
             res.end();
+            return;
+          }
+
+          // Validate session for non-initialize requests
+          const hasInitialize = messageArray.some((msg: any) => msg.method === 'initialize');
+          const hasOtherRequests = messageArray.some((msg: any) => msg.method && msg.method !== 'initialize');
+          
+          if (hasOtherRequests && !hasInitialize && !sessionId) {
+            console.error(`[POST /mcp] Missing session ID for non-initialize request`);
+            res.writeHead(404, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ 
+              jsonrpc: '2.0',
+              error: { code: -32603, message: 'Session ID required (Mcp-Session-Id header)' }
+            }));
+            return;
+          }
+
+          if (hasOtherRequests && sessionId && !hasInitialize && !validateSessionId(sessionId)) {
+            console.error(`[POST /mcp] Invalid or expired session ID: ${sessionId}`);
+            res.writeHead(404, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ 
+              jsonrpc: '2.0',
+              error: { code: -32603, message: 'Invalid or expired session' }
+            }));
             return;
           }
 
@@ -504,6 +535,7 @@ async function main() {
                 lastActivity: Date.now(),
               });
               responseHeaders['Mcp-Session-Id'] = newSessionId;
+              console.error(`[POST /mcp] Created new session: ${newSessionId}`);
               break;
             }
           }
@@ -518,6 +550,7 @@ async function main() {
               let response: any;
 
               if (message.method === 'initialize') {
+                console.error(`[initialize] Creating new session`);
                 response = {
                   jsonrpc: '2.0',
                   id: message.id,
@@ -532,8 +565,10 @@ async function main() {
                     },
                   },
                 };
+                console.error(`[initialize] Session ID generated, sent in header`);
                 res.write(`data: ${JSON.stringify(response)}\n\n`);
               } else if (message.method === 'tools/list') {
+                console.error(`[tools/list] Listing ${allTools.length} available tools`);
                 response = {
                   jsonrpc: '2.0',
                   id: message.id,
@@ -541,10 +576,23 @@ async function main() {
                 };
                 res.write(`data: ${JSON.stringify(response)}\n\n`);
               } else if (message.method === 'tools/call') {
-                const { name, arguments: args } = message.params || {};
+                const params = message.params || {};
+                const name = params.name;
+                const args = params.arguments || {};
                 const handler = toolHandlerMap.get(name);
 
-                if (!handler) {
+                console.error(`[tools/call] Tool: ${name}`);
+                console.error(`[tools/call] Arguments:`, JSON.stringify(args, null, 2));
+
+                if (!name) {
+                  console.error(`[tools/call] Missing tool name in params`);
+                  response = {
+                    jsonrpc: '2.0',
+                    id: message.id,
+                    error: { code: -32602, message: 'Missing "name" parameter' },
+                  };
+                } else if (!handler) {
+                  console.error(`[tools/call] Unknown tool: ${name}`);
                   response = {
                     jsonrpc: '2.0',
                     id: message.id,
@@ -552,17 +600,30 @@ async function main() {
                   };
                 } else {
                   try {
+                    console.error(`[tools/call] Executing tool: ${name}`);
                     const result = await handler(allureClient, name, args, PROJECT_ID!);
+                    console.error(`[tools/call] Tool completed successfully: ${name}`);
                     response = {
                       jsonrpc: '2.0',
                       id: message.id,
                       result: { content: [{ type: 'text', text: result }] },
                     };
                   } catch (error: any) {
+                    console.error(`[tools/call] Error executing tool: ${name}`);
+                    console.error(`[tools/call] Error type:`, error.constructor.name);
+                    console.error(`[tools/call] Error message:`, error.message);
+                    console.error(`[tools/call] Error stack:`, error.stack);
                     response = {
                       jsonrpc: '2.0',
                       id: message.id,
-                      error: { code: -32603, message: error.message },
+                      error: { 
+                        code: -32603, 
+                        message: error.message || 'Tool execution failed',
+                        data: {
+                          stack: error.stack,
+                          type: error.constructor.name,
+                        }
+                      },
                     };
                   }
                 }
@@ -621,64 +682,3 @@ async function main() {
       // Keep the connection open
       const keepAliveInterval = setInterval(() => {
         res.write(': keep-alive\n\n');
-      }, 30000);
-
-      req.on('close', () => {
-        clearInterval(keepAliveInterval);
-      });
-
-      return;
-    }
-
-    // DELETE: Terminate session
-    if (req.method === 'DELETE' && req.url === '/mcp') {
-      const sessionId = req.headers['mcp-session-id'] as string | undefined;
-
-      if (sessionId) {
-        sessions.delete(sessionId);
-        res.writeHead(204);
-        res.end();
-      } else {
-        res.writeHead(400, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Mcp-Session-Id header required' }));
-      }
-      return;
-    }
-
-    // Health check endpoint (optional)
-    if (req.method === 'GET' && req.url === '/health') {
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ status: 'ok' }));
-      return;
-    }
-
-    // Default 404
-    res.writeHead(404, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: 'Not found' }));
-  });
-
-  httpServer.listen(Number(PORT), () => {
-    console.error(`Allure TestOps MCP Server running on HTTP port ${PORT}`);
-    console.error(`Connected to: ${ALLURE_TESTOPS_URL}`);
-    console.error(`Project ID: ${PROJECT_ID}`);
-    console.error(`Registered ${allTools.length} tools`);
-    console.error('');
-    console.error('=== Streamable HTTP Spec Endpoints ===');
-    console.error(`MCP Endpoint: http://localhost:${PORT}/mcp`);
-    console.error(`POST /mcp - Send JSON-RPC messages`);
-    console.error(`GET /mcp - Open SSE stream`);
-    console.error(`DELETE /mcp - Terminate session`);
-    console.error('');
-    console.error(`Health check: http://localhost:${PORT}/health`);
-  });
-
-  httpServer.on('error', (error) => {
-    console.error('Server error:', error);
-    process.exit(1);
-  });
-}
-
-main().catch((error) => {
-  console.error('Fatal error:', error);
-  process.exit(1);
-});
