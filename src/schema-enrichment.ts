@@ -611,6 +611,234 @@ export const schemaEnrichment: Record<string, Record<string, any>> = {
     }
   },
 
+  // ============ LAUNCH UPLOAD CONTROLLER ============
+  'allure_upload_1': {
+    info: {
+      type: 'object',
+      description: 'Launch creation metadata (LaunchCreateAndUploadDto) - sent as JSON file field with Content-Disposition header in multipart request (required)',
+      properties: {
+        name: {
+          type: 'string',
+          description: 'Launch name (required)'
+        },
+        projectId: {
+          type: 'integer',
+          format: 'int64',
+          description: 'Project ID (required)'
+        },
+        tags: {
+          type: 'array',
+          description: 'Launch tags for categorization (optional)',
+          items: {
+            type: 'object',
+            properties: {
+              name: {
+                type: 'string',
+                description: 'Tag name'
+              },
+              id: {
+                type: 'integer',
+                format: 'int64',
+                description: 'Tag ID (optional, for existing tags)'
+              }
+            },
+            required: ['name']
+          }
+        },
+        links: {
+          type: 'array',
+          description: 'External links (optional)',
+          items: {
+            type: 'object',
+            properties: {
+              name: {
+                type: 'string',
+                description: 'Link name/title'
+              },
+              url: {
+                type: 'string',
+                description: 'Link URL'
+              },
+              type: {
+                type: 'string',
+                description: 'Link type'
+              }
+            }
+          }
+        },
+        issues: {
+          type: 'array',
+          description: 'Associated issues (optional)',
+          items: {
+            type: 'object',
+            properties: {
+              name: {
+                type: 'string',
+                description: 'Issue name'
+              },
+              url: {
+                type: 'string',
+                description: 'Issue URL'
+              },
+              integrationId: {
+                type: 'integer',
+                format: 'int64',
+                description: 'Integration ID'
+              }
+            }
+          }
+        },
+        envVarValues: {
+          type: 'array',
+          description: 'Environment variable values (optional)',
+          items: {
+            type: 'object',
+            properties: {
+              name: {
+                type: 'string',
+                description: 'Variable name'
+              },
+              value: {
+                type: 'string',
+                description: 'Variable value'
+              },
+              id: {
+                type: 'integer',
+                format: 'int64',
+                description: 'Variable ID'
+              }
+            }
+          }
+        }
+      },
+      required: ['name', 'projectId']
+    },
+    file: {
+      type: 'string',
+      description: 'Base64-encoded ZIP file containing test results in Allure JSON format (required)'
+    }
+  },
+
+  'allure_upload': {
+    launchId: {
+      type: 'integer',
+      format: 'int64',
+      description: 'Launch ID to upload results to (required)'
+    },
+    info: {
+      type: 'object',
+      description: 'Upload metadata (LaunchExistingUploadDto) - sent as JSON file field with Content-Disposition header in multipart request (required)',
+      properties: {
+        envVarValues: {
+          type: 'array',
+          description: 'Environment variable values (optional)',
+          items: {
+            type: 'object',
+            properties: {
+              name: {
+                type: 'string',
+                description: 'Variable name'
+              },
+              value: {
+                type: 'string',
+                description: 'Variable value'
+              },
+              id: {
+                type: 'integer',
+                format: 'int64',
+                description: 'Variable ID'
+              }
+            }
+          }
+        }
+      }
+    },
+    file: {
+      type: 'string',
+      description: 'Base64-encoded ZIP file containing test results in Allure JSON format (required)'
+    }
+  },
+
+  'allure_uploadArchives': {
+    launchId: {
+      type: 'integer',
+      format: 'int64',
+      description: 'Launch ID to upload archive to (required)'
+    },
+    info: {
+      type: 'object',
+      description: 'Upload metadata (LaunchExistingUploadDto) - sent as JSON file field with Content-Disposition header in multipart request (required)',
+      properties: {
+        envVarValues: {
+          type: 'array',
+          description: 'Environment variable values (optional)',
+          items: {
+            type: 'object',
+            properties: {
+              name: {
+                type: 'string',
+                description: 'Variable name'
+              },
+              value: {
+                type: 'string',
+                description: 'Variable value'
+              },
+              id: {
+                type: 'integer',
+                format: 'int64',
+                description: 'Variable ID'
+              }
+            }
+          }
+        }
+      }
+    },
+    file: {
+      type: 'string',
+      description: 'Base64-encoded compressed archive file (ZIP or TAR.GZ) containing test results (required)'
+    }
+  },
+
+  'allure_uploadFiles': {
+    launchId: {
+      type: 'integer',
+      format: 'int64',
+      description: 'Launch ID to upload files to (required)'
+    },
+    info: {
+      type: 'object',
+      description: 'Upload metadata (LaunchExistingUploadDto) - sent as JSON file field with Content-Disposition header in multipart request (required)',
+      properties: {
+        envVarValues: {
+          type: 'array',
+          description: 'Environment variable values (optional)',
+          items: {
+            type: 'object',
+            properties: {
+              name: {
+                type: 'string',
+                description: 'Variable name'
+              },
+              value: {
+                type: 'string',
+                description: 'Variable value'
+              },
+              id: {
+                type: 'integer',
+                format: 'int64',
+                description: 'Variable ID'
+              }
+            }
+          }
+        }
+      }
+    },
+    file: {
+      type: 'string',
+      description: 'Base64-encoded file containing test results in Allure JSON format (required)'
+    }
+  },
+
   // Add more tool enrichments here as needed
   // Follow the pattern: 'operationId': { propertyName: propertySchema, ... }
 };
@@ -635,6 +863,19 @@ export function enrichToolSchema(tool: any): any {
         type: 'object',
         properties: enrichment,
         required: ['body']
+      }
+    };
+  }
+
+  // If tool has 'info' and/or 'file' parameters (like launch upload tools), enrich with details
+  if ((tool.inputSchema?.properties?.info || tool.inputSchema?.properties?.file) && (enrichment.info || enrichment.file)) {
+    const currentRequired = tool.inputSchema?.required || [];
+    return {
+      ...tool,
+      inputSchema: {
+        type: 'object',
+        properties: enrichment,
+        required: currentRequired
       }
     };
   }
