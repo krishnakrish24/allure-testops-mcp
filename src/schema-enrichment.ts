@@ -468,6 +468,149 @@ export const schemaEnrichment: Record<string, Record<string, any>> = {
     }
   },
 
+  // ============ UPLOAD CONTROLLER ============
+  'allure_uploadResults': {
+    id: {
+      type: 'integer',
+      format: 'int64',
+      description: 'Launch ID to upload test results to (required)'
+    },
+    body: {
+      type: 'object',
+      description: 'Upload request containing test results in Allure JSON format',
+      properties: {
+        projectId: {
+          type: 'integer',
+          format: 'int64',
+          description: 'Project ID for the upload (required)'
+        },
+        info: {
+          type: 'object',
+          description: 'Upload metadata',
+          properties: {
+            projectId: {
+              type: 'integer',
+              format: 'int64',
+              description: 'Project ID (required)'
+            }
+          },
+          required: ['projectId']
+        }
+      },
+      additionalProperties: true
+    }
+  },
+
+  'allure_uploadResultsArchives': {
+    id: {
+      type: 'integer',
+      format: 'int64',
+      description: 'Launch ID to upload test result archives to (required)'
+    },
+    body: {
+      type: 'object',
+      description: 'Upload request for compressed test result files (ZIP or TAR.GZ)',
+      properties: {
+        projectId: {
+          type: 'integer',
+          format: 'int64',
+          description: 'Project ID for the upload (required)'
+        },
+        archivePath: {
+          type: 'string',
+          description: 'Path or URL to the archive file containing test results (required)'
+        },
+        archiveType: {
+          type: 'string',
+          enum: ['zip', 'tar.gz', 'tgz'],
+          description: 'Type of archive file (optional, auto-detected if not specified)'
+        }
+      },
+      additionalProperties: true
+    }
+  },
+
+  'allure_uploadResultsFiles': {
+    id: {
+      type: 'integer',
+      format: 'int64',
+      description: 'Launch ID to upload test result files to (required)'
+    },
+    body: {
+      type: 'object',
+      description: 'Upload request for test result files',
+      properties: {
+        projectId: {
+          type: 'integer',
+          format: 'int64',
+          description: 'Project ID for the upload (required)'
+        },
+        files: {
+          type: 'array',
+          description: 'Array of test result files in Allure JSON format (required)',
+          items: {
+            type: 'object',
+            description: 'Single test result file',
+            properties: {
+              name: {
+                type: 'string',
+                description: 'Test name'
+              },
+              status: {
+                type: 'string',
+                enum: ['passed', 'failed', 'skipped', 'broken', 'unknown'],
+                description: 'Test status (must be lowercase)'
+              },
+              start: {
+                type: 'integer',
+                format: 'int64',
+                description: 'Start timestamp in milliseconds'
+              },
+              stop: {
+                type: 'integer',
+                format: 'int64',
+                description: 'Stop timestamp in milliseconds'
+              },
+              description: {
+                type: 'string',
+                description: 'Test description (optional)'
+              },
+              fullName: {
+                type: 'string',
+                description: 'Full test name with class/module path (optional)'
+              },
+              steps: {
+                type: 'array',
+                description: 'Test steps (optional)',
+                items: {
+                  type: 'object',
+                  properties: {
+                    name: { type: 'string' },
+                    status: { type: 'string' },
+                    start: { type: 'integer' },
+                    stop: { type: 'integer' }
+                  }
+                }
+              },
+              labels: {
+                type: 'array',
+                description: 'Labels/tags for the test (optional)',
+                items: {
+                  type: 'object',
+                  properties: {
+                    name: { type: 'string' },
+                    value: { type: 'string' }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      required: ['projectId', 'files']
+    }
+  },
+
   // Add more tool enrichments here as needed
   // Follow the pattern: 'operationId': { propertyName: propertySchema, ... }
 };
