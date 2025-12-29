@@ -411,6 +411,10 @@ export const schemaEnrichment: Record<string, Record<string, any>> = {
                     enum: ['body'],
                     description: 'Step type - MUST be "body" (attachment and expectedBody types not supported for creation)'
                   },
+                  name: {
+                    type: 'string',
+                    description: 'Step name (required)'
+                  },
                   body: {
                     type: 'string',
                     description: 'Step body/content - HTML or plain text describing the step execution (optional)'
