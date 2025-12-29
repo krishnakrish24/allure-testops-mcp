@@ -249,7 +249,7 @@ export const schemaEnrichment: Record<string, Record<string, any>> = {
   },
 
   // ============ TEST RESULT CONTROLLER (V2) ============
-  'create_6': {
+  'allure_create_6': {
     body: {
       type: 'object',
       description: 'Test result creation request (V2)',
