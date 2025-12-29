@@ -275,7 +275,7 @@ export const schemaEnrichment: Record<string, Record<string, any>> = {
         testCaseId: {
           type: 'integer',
           format: 'int64',
-          description: 'Test case ID to link with this result (optional)'
+          description: 'Test case ID to link with this result. Generate a new ID if not available (required)'
         },
         testLayerId: {
           type: 'integer',
