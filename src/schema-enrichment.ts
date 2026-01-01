@@ -248,6 +248,175 @@ export const schemaEnrichment: Record<string, Record<string, any>> = {
     }
   },
 
+  'allure_create_14': {
+    body: {
+      type: 'object',
+      description: 'Test case creation request (V2) with comprehensive scenario and metadata support',
+      properties: {
+        projectId: {
+          type: 'integer',
+          format: 'int64',
+          description: 'Project ID (required)'
+        },
+        name: {
+          type: 'string',
+          description: 'Test case name (required)'
+        },
+        fullName: {
+          type: 'string',
+          description: 'Full test name including class/module path (optional)'
+        },
+        description: {
+          type: 'string',
+          description: 'Test case description (optional)'
+        },
+        precondition: {
+          type: 'string',
+          description: 'Precondition/setup steps (optional)'
+        },
+        expectedResult: {
+          type: 'string',
+          description: 'Expected result/outcome (optional)'
+        },
+        automated: {
+          type: 'boolean',
+          description: 'Whether this is an automated test (optional)'
+        },
+        external: {
+          type: 'boolean',
+          description: 'Whether this is an external test (optional)'
+        },
+        deleted: {
+          type: 'boolean',
+          description: 'Whether this test case is deleted (optional)'
+        },
+        testLayerId: {
+          type: 'integer',
+          format: 'int64',
+          description: 'Test layer ID for categorization (optional)'
+        },
+        statusId: {
+          type: 'integer',
+          format: 'int64',
+          description: 'Custom status ID from workflow (optional)'
+        },
+        workflowId: {
+          type: 'integer',
+          format: 'int64',
+          description: 'Workflow ID for status management (optional)'
+        },
+        tags: {
+          type: 'array',
+          description: 'Test tags for categorization (optional)',
+          items: {
+            type: 'object',
+            properties: {
+              id: {
+                type: 'integer',
+                format: 'int64',
+                description: 'Tag ID'
+              },
+              name: {
+                type: 'string',
+                description: 'Tag name'
+              }
+            },
+            required: ['name']
+          }
+        },
+        links: {
+          type: 'array',
+          description: 'External links (optional)',
+          items: {
+            type: 'object',
+            properties: {
+              name: {
+                type: 'string',
+                description: 'Link title'
+              },
+              url: {
+                type: 'string',
+                description: 'Link URL'
+              },
+              type: {
+                type: 'string',
+                description: 'Link type (e.g., "link", "issue")'
+              }
+            },
+            required: ['url']
+          }
+        },
+        members: {
+          type: 'array',
+          description: 'Test assignees/members (optional)',
+          items: {
+            type: 'object',
+            properties: {
+              id: {
+                type: 'integer',
+                format: 'int64',
+                description: 'Member ID'
+              },
+              name: {
+                type: 'string',
+                description: 'Member name/login'
+              }
+            }
+          }
+        },
+        customFields: {
+          type: 'array',
+          description: 'Custom field values (optional)',
+          items: {
+            type: 'object',
+            properties: {
+              id: {
+                type: 'integer',
+                format: 'int64',
+                description: 'Custom field ID'
+              },
+              name: {
+                type: 'string',
+                description: 'Custom field name'
+              }
+            }
+          }
+        },
+        scenario: {
+          type: 'object',
+          description: 'Test scenario (BDD) details with step definitions (optional)',
+          properties: {
+            steps: {
+              type: 'array',
+              description: 'Scenario steps (each step can be BodyStepDto, AttachmentStepDto, ExpectedBodyStepDto, or SharedStepStepDto)',
+              items: {
+                type: 'object',
+                description: 'Scenario step - typically a BodyStepDto with type, name, and optional body content',
+                properties: {
+                  type: {
+                    type: 'string',
+                    enum: ['body', 'attachment', 'expectedBody', 'sharedStep'],
+                    description: 'Step type - body (regular step), attachment (with file), expectedBody (with expected outcome), or sharedStep (reference to shared step)'
+                  },
+                  name: {
+                    type: 'string',
+                    description: 'Step name/title (required)'
+                  },
+                  body: {
+                    type: 'string',
+                    description: 'Step body/content - HTML or plain text describing the step (optional, for body and expectedBody steps)'
+                  }
+                },
+                required: ['type', 'name']
+              }
+            }
+          }
+        }
+      },
+      required: ['projectId', 'name']
+    }
+  },
+
   // ============ TEST RESULT CONTROLLER (V2) ============
   'allure_create_6': {
     body: {
