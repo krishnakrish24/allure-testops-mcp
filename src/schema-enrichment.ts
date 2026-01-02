@@ -413,7 +413,7 @@ export const schemaEnrichment: Record<string, Record<string, any>> = {
                         description: 'Step body as JSON markup document (optional) - structured markup with text formatting'
                       }
                     },
-                    required: ['type']
+                    required: ['type', 'name']
                   },
                   {
                     type: 'object',
@@ -458,7 +458,7 @@ export const schemaEnrichment: Record<string, Record<string, any>> = {
                         description: 'Expected outcome as JSON markup document (optional) - structured markup with text formatting'
                       }
                     },
-                    required: ['type']
+                    required: ['type', 'name']
                   },
                   {
                     type: 'object',
@@ -479,7 +479,7 @@ export const schemaEnrichment: Record<string, Record<string, any>> = {
                         description: 'Shared step ID (required) - references the ID of a shared step definition'
                       }
                     },
-                    required: ['type', 'sharedStepId']
+                    required: ['type', 'name', 'sharedStepId']
                   }
                 ]
               }
