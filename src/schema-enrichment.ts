@@ -384,30 +384,104 @@ export const schemaEnrichment: Record<string, Record<string, any>> = {
         },
         scenario: {
           type: 'object',
-          description: 'Test scenario (BDD) details with step definitions (optional)',
+          description: 'Test scenario (BDD) details with comprehensive step definitions - supports Given/When/Then style steps (optional)',
           properties: {
             steps: {
               type: 'array',
-              description: 'Scenario steps (each step can be BodyStepDto, AttachmentStepDto, ExpectedBodyStepDto, or SharedStepStepDto)',
+              description: 'Scenario steps array - each step defines a single test action or verification. Use discriminator "type" to determine which step type to use: BodyStepDto, AttachmentStepDto, ExpectedBodyStepDto, or SharedStepStepDto',
               items: {
-                type: 'object',
-                description: 'Scenario step - typically a BodyStepDto with type, name, and optional body content',
-                properties: {
-                  type: {
-                    type: 'string',
-                    enum: ['body', 'attachment', 'expectedBody', 'sharedStep'],
-                    description: 'Step type - body (regular step), attachment (with file), expectedBody (with expected outcome), or sharedStep (reference to shared step)'
+                oneOf: [
+                  {
+                    type: 'object',
+                    description: 'BodyStepDto - Regular step with body content describing action or verification',
+                    properties: {
+                      type: {
+                        type: 'string',
+                        enum: ['body'],
+                        description: 'Step type (required) - must be "body" for regular steps with description'
+                      },
+                      name: {
+                        type: 'string',
+                        description: 'Step name/title (required) - typically follows Given/When/Then pattern (e.g., "Given user is logged in", "When user clicks submit")'
+                      },
+                      body: {
+                        type: 'string',
+                        description: 'Step body/content (optional) - Plain text or HTML describing the step action or verification'
+                      },
+                      bodyJson: {
+                        type: 'object',
+                        description: 'Step body as JSON markup document (optional) - structured markup with text formatting'
+                      }
+                    },
+                    required: ['type']
                   },
-                  name: {
-                    type: 'string',
-                    description: 'Step name/title (required)'
+                  {
+                    type: 'object',
+                    description: 'AttachmentStepDto - Step with file attachment reference',
+                    properties: {
+                      type: {
+                        type: 'string',
+                        enum: ['attachment'],
+                        description: 'Step type (required) - must be "attachment" for steps with file attachments'
+                      },
+                      name: {
+                        type: 'string',
+                        description: 'Step name/title (required)'
+                      },
+                      attachmentId: {
+                        type: 'integer',
+                        format: 'int64',
+                        description: 'Attachment ID (required) - reference to a previously uploaded attachment'
+                      }
+                    },
+                    required: ['type', 'attachmentId']
                   },
-                  body: {
-                    type: 'string',
-                    description: 'Step body/content - HTML or plain text describing the step (optional, for body and expectedBody steps)'
+                  {
+                    type: 'object',
+                    description: 'ExpectedBodyStepDto - Step with expected outcome/result',
+                    properties: {
+                      type: {
+                        type: 'string',
+                        enum: ['expectedBody'],
+                        description: 'Step type (required) - must be "expectedBody" for steps defining expected outcomes (typically "Then" clauses)'
+                      },
+                      name: {
+                        type: 'string',
+                        description: 'Step name/title (required) - typically a "Then" statement (e.g., "Then order is created successfully")'
+                      },
+                      body: {
+                        type: 'string',
+                        description: 'Expected outcome/result (optional) - plain text or HTML describing what should happen'
+                      },
+                      bodyJson: {
+                        type: 'object',
+                        description: 'Expected outcome as JSON markup document (optional) - structured markup with text formatting'
+                      }
+                    },
+                    required: ['type']
+                  },
+                  {
+                    type: 'object',
+                    description: 'SharedStepStepDto - Reference to a shared/reusable step definition',
+                    properties: {
+                      type: {
+                        type: 'string',
+                        enum: ['sharedStep'],
+                        description: 'Step type (required) - must be "sharedStep" for references to shared step definitions'
+                      },
+                      name: {
+                        type: 'string',
+                        description: 'Step name/title (required)'
+                      },
+                      sharedStepId: {
+                        type: 'integer',
+                        format: 'int64',
+                        description: 'Shared step ID (required) - references the ID of a shared step definition'
+                      }
+                    },
+                    required: ['type', 'sharedStepId']
                   }
-                },
-                required: ['type', 'name']
+                ]
               }
             }
           }
