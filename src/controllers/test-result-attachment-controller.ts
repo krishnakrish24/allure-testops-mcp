@@ -124,46 +124,14 @@ export async function handleTestResultAttachmentControllerTool(
 
         const attachmentFileName = fileName || 'attachment';
 
-        // Create custom multipart form data for file-only upload
-        const boundary = '----Boundary' + Math.random().toString(36).substr(2, 9);
-        let body = '';
-
-        // Add file field
-        body += `--${boundary}\r\n`;
-        body += `Content-Disposition: form-data; name="file"; filename="${attachmentFileName}"\r\n`;
-        body += 'Content-Type: application/octet-stream\r\n\r\n';
-
-        const textEncoder = new TextEncoder();
-        const textPart = textEncoder.encode(body);
-        const footer = textEncoder.encode(`\r\n--${boundary}--`);
-
-        const combinedBody = Buffer.concat([
-          Buffer.from(textPart),
-          Buffer.from(fileBuffer),
-          Buffer.from(footer),
-        ]);
-
-        // Make the request directly using fetch through the base URL
-        const baseUrl = (client as any).config.baseUrl;
-        const token = (client as any).token;
-        const url = `${baseUrl}/api/testresult/attachment?testResultId=${testResultId}`;
-
-        const response = await fetch(url, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Api-Token ${token}`,
-            'Accept': 'application/json',
-            'Content-Type': `multipart/form-data; boundary=${boundary}`,
-          },
-          body: combinedBody,
-        });
-
-        if (!response.ok) {
-          const errorText = await response.text();
-          throw new Error(`HTTP ${response.status}: ${errorText}`);
-        }
-
-        const result = await response.json();
+        // Use the client's postSingleFile method for file-only upload
+        const result = await client.postSingleFile(
+          '/api/testresult/attachment',
+          fileBuffer,
+          attachmentFileName,
+          { testResultId }
+        );
+        
         return JSON.stringify(result, null, 2);
       }
 
