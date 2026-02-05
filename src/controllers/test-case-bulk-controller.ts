@@ -14,12 +14,41 @@ export const testCaseBulkControllerTools = [
         "properties": {
           "body": {
             "type": "object",
-            "description": "Request body"
+            "description": "TestCaseBulkNewCfvDto",
+            "properties": {
+              "cfv": {
+                "type": "array",
+                "description": "Array of custom fields with values (minItems: 1)",
+                "minItems": 1,
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": { "type": "number", "description": "Custom field ID" },
+                    "values": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": { "type": "number" }
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "selection": {
+                "type": "object",
+                "description": "Test case selection (TestCaseTreeSelectionDto)",
+                "properties": {
+                  "projectId": { "type": "number", "description": "Project ID (required)" }
+                },
+                "required": ["projectId"]
+              }
+            },
+            "required": ["cfv", "selection"]
           }
         },
-        "required": [
-          "body"
-        ]
+        "required": ["body"]
       }
     },
     {
@@ -30,12 +59,27 @@ export const testCaseBulkControllerTools = [
         "properties": {
           "body": {
             "type": "object",
-            "description": "Request body"
+            "description": "TestCaseBulkEntityIdsDto",
+            "properties": {
+              "ids": {
+                "type": "array",
+                "description": "Array of custom field value IDs to remove (minItems: 1)",
+                "minItems": 1,
+                "items": { "type": "number" }
+              },
+              "selection": {
+                "type": "object",
+                "description": "Test case selection (TestCaseTreeSelectionDto)",
+                "properties": {
+                  "projectId": { "type": "number", "description": "Project ID (required)" }
+                },
+                "required": ["projectId"]
+              }
+            },
+            "required": ["ids", "selection"]
           }
         },
-        "required": [
-          "body"
-        ]
+        "required": ["body"]
       }
     },
     {
@@ -46,12 +90,33 @@ export const testCaseBulkControllerTools = [
         "properties": {
           "body": {
             "type": "object",
-            "description": "Request body"
+            "description": "TestCaseBulkCloneDto",
+            "properties": {
+              "selection": {
+                "type": "object",
+                "description": "Test case selection (TestCaseTreeSelectionDto)",
+                "properties": {
+                  "projectId": { "type": "number", "description": "Project ID (required)" }
+                },
+                "required": ["projectId"]
+              },
+              "toProjectId": { "type": "number", "description": "Target project ID" },
+              "nameSuffix": { "type": "string", "description": "Suffix to add to cloned test case names" },
+              "ignoreAttachments": { "type": "boolean" },
+              "ignoreCfv": { "type": "boolean" },
+              "ignoreIssueLinks": { "type": "boolean" },
+              "ignoreLinks": { "type": "boolean" },
+              "ignoreMembers": { "type": "boolean" },
+              "ignoreParameters": { "type": "boolean" },
+              "ignoreRelations": { "type": "boolean" },
+              "ignoreScenario": { "type": "boolean" },
+              "ignoreTags": { "type": "boolean" },
+              "ignoreTestKeys": { "type": "boolean" }
+            },
+            "required": ["selection"]
           }
         },
-        "required": [
-          "body"
-        ]
+        "required": ["body"]
       }
     },
     {
@@ -160,12 +225,33 @@ export const testCaseBulkControllerTools = [
         "properties": {
           "body": {
             "type": "object",
-            "description": "Request body"
+            "description": "TestCaseBulkExternalLinkDto",
+            "properties": {
+              "links": {
+                "type": "array",
+                "description": "Array of external links (minItems: 1)",
+                "minItems": 1,
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "name": { "type": "string" },
+                    "url": { "type": "string" }
+                  }
+                }
+              },
+              "selection": {
+                "type": "object",
+                "description": "Test case selection (TestCaseTreeSelectionDto)",
+                "properties": {
+                  "projectId": { "type": "number", "description": "Project ID (required)" }
+                },
+                "required": ["projectId"]
+              }
+            },
+            "required": ["links", "selection"]
           }
         },
-        "required": [
-          "body"
-        ]
+        "required": ["body"]
       }
     },
     {
@@ -176,12 +262,32 @@ export const testCaseBulkControllerTools = [
         "properties": {
           "body": {
             "type": "object",
-            "description": "Request body"
+            "description": "TestCaseBulkIssueDto",
+            "properties": {
+              "issues": {
+                "type": "array",
+                "description": "Array of issues (minItems: 1)",
+                "minItems": 1,
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": { "type": "number", "description": "Issue ID" }
+                  }
+                }
+              },
+              "selection": {
+                "type": "object",
+                "description": "Test case selection (TestCaseTreeSelectionDto)",
+                "properties": {
+                  "projectId": { "type": "number", "description": "Project ID (required)" }
+                },
+                "required": ["projectId"]
+              }
+            },
+            "required": ["issues", "selection"]
           }
         },
-        "required": [
-          "body"
-        ]
+        "required": ["body"]
       }
     },
     {
@@ -192,12 +298,27 @@ export const testCaseBulkControllerTools = [
         "properties": {
           "body": {
             "type": "object",
-            "description": "Request body"
+            "description": "TestCaseBulkEntityIdsDto",
+            "properties": {
+              "ids": {
+                "type": "array",
+                "description": "Array of issue IDs to remove (minItems: 1)",
+                "minItems": 1,
+                "items": { "type": "number" }
+              },
+              "selection": {
+                "type": "object",
+                "description": "Test case selection (TestCaseTreeSelectionDto)",
+                "properties": {
+                  "projectId": { "type": "number", "description": "Project ID (required)" }
+                },
+                "required": ["projectId"]
+              }
+            },
+            "required": ["ids", "selection"]
           }
         },
-        "required": [
-          "body"
-        ]
+        "required": ["body"]
       }
     },
     {
@@ -208,12 +329,22 @@ export const testCaseBulkControllerTools = [
         "properties": {
           "body": {
             "type": "object",
-            "description": "Request body"
+            "description": "TestCaseBulkLayerDto",
+            "properties": {
+              "layerId": { "type": "number", "description": "Layer ID to set" },
+              "selection": {
+                "type": "object",
+                "description": "Test case selection (TestCaseTreeSelectionDto)",
+                "properties": {
+                  "projectId": { "type": "number", "description": "Project ID (required)" }
+                },
+                "required": ["projectId"]
+              }
+            },
+            "required": ["selection"]
           }
         },
-        "required": [
-          "body"
-        ]
+        "required": ["body"]
       }
     },
     {
@@ -224,12 +355,33 @@ export const testCaseBulkControllerTools = [
         "properties": {
           "body": {
             "type": "object",
-            "description": "Request body"
+            "description": "TestCaseBulkMemberDto",
+            "properties": {
+              "members": {
+                "type": "array",
+                "description": "Array of members (minItems: 1)",
+                "minItems": 1,
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "userId": { "type": "number" },
+                    "roleId": { "type": "number" }
+                  }
+                }
+              },
+              "selection": {
+                "type": "object",
+                "description": "Test case selection (TestCaseTreeSelectionDto)",
+                "properties": {
+                  "projectId": { "type": "number", "description": "Project ID (required)" }
+                },
+                "required": ["projectId"]
+              }
+            },
+            "required": ["members", "selection"]
           }
         },
-        "required": [
-          "body"
-        ]
+        "required": ["body"]
       }
     },
     {
@@ -240,12 +392,27 @@ export const testCaseBulkControllerTools = [
         "properties": {
           "body": {
             "type": "object",
-            "description": "Request body"
+            "description": "TestCaseBulkEntityIdsDto",
+            "properties": {
+              "ids": {
+                "type": "array",
+                "description": "Array of member IDs to remove (minItems: 1)",
+                "minItems": 1,
+                "items": { "type": "number" }
+              },
+              "selection": {
+                "type": "object",
+                "description": "Test case selection (TestCaseTreeSelectionDto)",
+                "properties": {
+                  "projectId": { "type": "number", "description": "Project ID (required)" }
+                },
+                "required": ["projectId"]
+              }
+            },
+            "required": ["ids", "selection"]
           }
         },
-        "required": [
-          "body"
-        ]
+        "required": ["body"]
       }
     },
     {
@@ -256,12 +423,26 @@ export const testCaseBulkControllerTools = [
         "properties": {
           "body": {
             "type": "object",
-            "description": "Request body"
+            "description": "TestCaseBulkProjectChangeDto",
+            "properties": {
+              "selection": {
+                "type": "object",
+                "description": "Test case selection (TestCaseTreeSelectionDto)",
+                "properties": {
+                  "projectId": { "type": "number", "description": "Project ID (required)" }
+                },
+                "required": ["projectId"]
+              },
+              "toProjectId": { "type": "number", "description": "Target project ID" },
+              "cfMapping": {
+                "type": "object",
+                "description": "Custom field mapping (sourceFieldId -> targetFieldId)"
+              }
+            },
+            "required": ["selection", "toProjectId"]
           }
         },
-        "required": [
-          "body"
-        ]
+        "required": ["body"]
       }
     },
     {
@@ -272,12 +453,29 @@ export const testCaseBulkControllerTools = [
         "properties": {
           "body": {
             "type": "object",
-            "description": "Request body"
+            "description": "TestCaseBulkMuteDto",
+            "properties": {
+              "mute": {
+                "type": "object",
+                "description": "Mute configuration",
+                "properties": {
+                  "reason": { "type": "string" },
+                  "until": { "type": "string", "description": "ISO date string" }
+                }
+              },
+              "selection": {
+                "type": "object",
+                "description": "Test case selection (TestCaseTreeSelectionDto)",
+                "properties": {
+                  "projectId": { "type": "number", "description": "Project ID (required)" }
+                },
+                "required": ["projectId"]
+              }
+            },
+            "required": ["mute", "selection"]
           }
         },
-        "required": [
-          "body"
-        ]
+        "required": ["body"]
       }
     },
     {
@@ -288,12 +486,21 @@ export const testCaseBulkControllerTools = [
         "properties": {
           "body": {
             "type": "object",
-            "description": "Request body"
+            "description": "TestCaseBulkDto",
+            "properties": {
+              "selection": {
+                "type": "object",
+                "description": "Test case selection (TestCaseTreeSelectionDto)",
+                "properties": {
+                  "projectId": { "type": "number", "description": "Project ID (required)" }
+                },
+                "required": ["projectId"]
+              }
+            },
+            "required": ["selection"]
           }
         },
-        "required": [
-          "body"
-        ]
+        "required": ["body"]
       }
     },
     {
@@ -304,12 +511,21 @@ export const testCaseBulkControllerTools = [
         "properties": {
           "body": {
             "type": "object",
-            "description": "Request body"
+            "description": "TestCaseBulkRunDto",
+            "properties": {
+              "selection": {
+                "type": "object",
+                "description": "Test case selection (TestCaseTreeSelectionDto)",
+                "properties": {
+                  "projectId": { "type": "number", "description": "Project ID (required)" }
+                },
+                "required": ["projectId"]
+              }
+            },
+            "required": ["selection"]
           }
         },
-        "required": [
-          "body"
-        ]
+        "required": ["body"]
       }
     },
     {
@@ -320,12 +536,35 @@ export const testCaseBulkControllerTools = [
         "properties": {
           "body": {
             "type": "object",
-            "description": "Request body"
+            "description": "TestCaseBulkRunExistingLaunchDto",
+            "properties": {
+              "launchId": { "type": "number", "description": "Existing launch ID" },
+              "selection": {
+                "type": "object",
+                "description": "Test case selection (TestCaseTreeSelectionDto)",
+                "properties": {
+                  "projectId": { "type": "number", "description": "Project ID (required)" }
+                },
+                "required": ["projectId"]
+              },
+              "assignees": {
+                "type": "array",
+                "items": { "type": "string" }
+              },
+              "envVarValueSets": {
+                "type": "array"
+              },
+              "jobsMapping": {
+                "type": "array"
+              },
+              "jobsParams": {
+                "type": "array"
+              }
+            },
+            "required": ["launchId", "selection"]
           }
         },
-        "required": [
-          "body"
-        ]
+        "required": ["body"]
       }
     },
     {
@@ -336,12 +575,49 @@ export const testCaseBulkControllerTools = [
         "properties": {
           "body": {
             "type": "object",
-            "description": "Request body"
+            "description": "TestCaseBulkRunNewLaunchDto",
+            "properties": {
+              "launchName": { 
+                "type": "string", 
+                "description": "Name for the new launch",
+                "minLength": 1,
+                "maxLength": 255
+              },
+              "selection": {
+                "type": "object",
+                "description": "Test case selection (TestCaseTreeSelectionDto)",
+                "properties": {
+                  "projectId": { "type": "number", "description": "Project ID (required)" }
+                },
+                "required": ["projectId"]
+              },
+              "assignees": {
+                "type": "array",
+                "items": { "type": "string" }
+              },
+              "issues": {
+                "type": "array"
+              },
+              "links": {
+                "type": "array"
+              },
+              "tags": {
+                "type": "array"
+              },
+              "envVarValueSets": {
+                "type": "array"
+              },
+              "jobsMapping": {
+                "type": "array"
+              },
+              "jobsParams": {
+                "type": "array"
+              }
+            },
+            "required": ["launchName", "selection"]
           }
         },
-        "required": [
-          "body"
-        ]
+        "required": ["body"]
       }
     },
     {
@@ -352,12 +628,23 @@ export const testCaseBulkControllerTools = [
         "properties": {
           "body": {
             "type": "object",
-            "description": "Request body"
+            "description": "TestCaseBulkStatusDto",
+            "properties": {
+              "statusId": { "type": "number", "description": "Status ID" },
+              "workflowId": { "type": "number", "description": "Workflow ID" },
+              "selection": {
+                "type": "object",
+                "description": "Test case selection (TestCaseTreeSelectionDto)",
+                "properties": {
+                  "projectId": { "type": "number", "description": "Project ID (required)" }
+                },
+                "required": ["projectId"]
+              }
+            },
+            "required": ["selection", "statusId", "workflowId"]
           }
         },
-        "required": [
-          "body"
-        ]
+        "required": ["body"]
       }
     },
     {
@@ -368,12 +655,32 @@ export const testCaseBulkControllerTools = [
         "properties": {
           "body": {
             "type": "object",
-            "description": "Request body"
+            "description": "TestCaseBulkTagDto",
+            "properties": {
+              "tags": {
+                "type": "array",
+                "description": "Array of tags (minItems: 1)",
+                "minItems": 1,
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "name": { "type": "string" }
+                  }
+                }
+              },
+              "selection": {
+                "type": "object",
+                "description": "Test case selection (TestCaseTreeSelectionDto)",
+                "properties": {
+                  "projectId": { "type": "number", "description": "Project ID (required)" }
+                },
+                "required": ["projectId"]
+              }
+            },
+            "required": ["selection", "tags"]
           }
         },
-        "required": [
-          "body"
-        ]
+        "required": ["body"]
       }
     },
     {
@@ -384,12 +691,32 @@ export const testCaseBulkControllerTools = [
         "properties": {
           "body": {
             "type": "object",
-            "description": "Request body"
+            "description": "TestCaseBulkTagDto",
+            "properties": {
+              "tags": {
+                "type": "array",
+                "description": "Array of tags (minItems: 1)",
+                "minItems": 1,
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "name": { "type": "string" }
+                  }
+                }
+              },
+              "selection": {
+                "type": "object",
+                "description": "Test case selection (TestCaseTreeSelectionDto)",
+                "properties": {
+                  "projectId": { "type": "number", "description": "Project ID (required)" }
+                },
+                "required": ["projectId"]
+              }
+            },
+            "required": ["selection", "tags"]
           }
         },
-        "required": [
-          "body"
-        ]
+        "required": ["body"]
       }
     },
     {
@@ -400,12 +727,35 @@ export const testCaseBulkControllerTools = [
         "properties": {
           "body": {
             "type": "object",
-            "description": "Request body"
+            "description": "TestCaseBulkTestPlanCreateDto",
+            "properties": {
+              "testPlanName": { 
+                "type": "string",
+                "description": "Name for the test plan",
+                "minLength": 1,
+                "maxLength": 255
+              },
+              "selection": {
+                "type": "object",
+                "description": "Test case selection (TestCaseTreeSelectionDto)",
+                "properties": {
+                  "projectId": { "type": "number", "description": "Project ID (required)" }
+                },
+                "required": ["projectId"]
+              },
+              "tree": {
+                "type": "object",
+                "description": "Tree reference",
+                "properties": {
+                  "id": { "type": "number" },
+                  "name": { "type": "string" }
+                }
+              }
+            },
+            "required": ["selection", "testPlanName"]
           }
         },
-        "required": [
-          "body"
-        ]
+        "required": ["body"]
       }
     }
   ];
