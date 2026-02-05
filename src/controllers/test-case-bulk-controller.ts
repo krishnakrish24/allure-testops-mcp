@@ -62,7 +62,89 @@ export const testCaseBulkControllerTools = [
         "properties": {
           "body": {
             "type": "object",
-            "description": "Request body"
+            "description": "Drag and drop data (TestCaseBulkDragAndDropDto)",
+            "properties": {
+              "path": {
+                "type": "array",
+                "description": "Array of group IDs representing the target path",
+                "items": {
+                  "type": "number"
+                }
+              },
+              "selection": {
+                "type": "object",
+                "description": "Test case tree selection criteria (TestCaseTreeSelectionDto)",
+                "properties": {
+                  "projectId": {
+                    "type": "number",
+                    "description": "Project ID (required)"
+                  },
+                  "treeId": {
+                    "type": "number",
+                    "description": "Tree ID"
+                  },
+                  "filterId": {
+                    "type": "number",
+                    "description": "Filter ID"
+                  },
+                  "search": {
+                    "type": "string",
+                    "description": "Search query"
+                  },
+                  "path": {
+                    "type": "array",
+                    "description": "Path array",
+                    "items": {
+                      "type": "number"
+                    }
+                  },
+                  "deleted": {
+                    "type": "boolean",
+                    "description": "Include deleted test cases"
+                  },
+                  "inverted": {
+                    "type": "boolean",
+                    "description": "Invert selection"
+                  },
+                  "leafsInclude": {
+                    "type": "array",
+                    "description": "Leaf IDs to include",
+                    "items": {
+                      "type": "number"
+                    }
+                  },
+                  "leafsExclude": {
+                    "type": "array",
+                    "description": "Leaf IDs to exclude",
+                    "items": {
+                      "type": "number"
+                    }
+                  },
+                  "groupsInclude": {
+                    "type": "array",
+                    "description": "Group path arrays to include",
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "number"
+                      }
+                    }
+                  },
+                  "groupsExclude": {
+                    "type": "array",
+                    "description": "Group path arrays to exclude",
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "number"
+                      }
+                    }
+                  }
+                },
+                "required": ["projectId"]
+              }
+            },
+            "required": ["path", "selection"]
           }
         },
         "required": [
