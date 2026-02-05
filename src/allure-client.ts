@@ -132,6 +132,28 @@ export class AllureClient {
     }
   }
 
+  /**
+   * GET request that returns binary data (ArrayBuffer)
+   * Used for downloading attachment content
+   */
+  async getBinary(path: string, params?: Record<string, any>): Promise<ArrayBuffer> {
+    const url = this.buildUrl(path, params);
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Api-Token ${this.token}`,
+        'Accept': 'application/octet-stream',
+      },
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`HTTP ${response.status}: ${errorText}`);
+    }
+
+    return response.arrayBuffer();
+  }
+
   async postMultipart<T>(
     path: string,
     info: any,
