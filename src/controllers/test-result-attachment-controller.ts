@@ -149,8 +149,16 @@ export async function handleTestResultAttachmentControllerTool(
         if (!id) {
           throw new Error('id parameter is required');
         }
-        const result = await client.get(`/api/testresult/attachment/${id}/content`, {});
-        return JSON.stringify(result, null, 2);
+        // Get binary content and convert to base64
+        const binaryData = await client.getBinary(`/api/testresult/attachment/${id}/content`, {});
+        const buffer = Buffer.from(binaryData);
+        const base64Content = buffer.toString('base64');
+        return JSON.stringify({ 
+          id, 
+          content: base64Content,
+          size: buffer.length,
+          encoding: 'base64'
+        }, null, 2);
       }
 
       default:
