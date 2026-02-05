@@ -43,6 +43,7 @@ import { projectSettingsControllerTools, handleProjectSettingsControllerTool } f
 import { testCaseControllerTools, handleTestCaseControllerTool } from './controllers/test-case-controller.js';
 import { testCaseSearchControllerTools, handleTestCaseSearchControllerTool } from './controllers/test-case-search-controller.js';
 import { testCaseAttachmentControllerTools, handleTestCaseAttachmentControllerTool } from './controllers/test-case-attachment-controller.js';
+import { testResultAttachmentControllerTools, handleTestResultAttachmentControllerTool } from './controllers/test-result-attachment-controller.js';
 import { testCaseAuditControllerTools, handleTestCaseAuditControllerTool } from './controllers/test-case-audit-controller.js';
 import { testCaseBulkControllerTools, handleTestCaseBulkControllerTool } from './controllers/test-case-bulk-controller.js';
 import { testCaseSyncControllerTools, handleTestCaseSyncControllerTool } from './controllers/test-case-sync-controller.js';
