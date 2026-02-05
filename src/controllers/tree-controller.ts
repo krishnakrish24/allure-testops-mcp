@@ -43,13 +43,40 @@ export const treeControllerTools = [
     },
     {
       "name": "allure_create_4",
-      "description": "POST /api/tree",
+      "description": "POST /api/tree - Create a new tree",
       "inputSchema": {
         "type": "object",
         "properties": {
           "body": {
             "type": "object",
-            "description": "Request body"
+            "description": "Tree creation data (TreeCreateDto)",
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "Name of the tree",
+                "minLength": 1
+              },
+              "projectId": {
+                "type": "number",
+                "description": "Project ID"
+              },
+              "fields": {
+                "type": "array",
+                "description": "Array of custom field IDs (minItems: 1, maxItems: 2147483647). Each item should be an object with 'id' property.",
+                "minItems": 1,
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "number",
+                      "description": "Custom field ID"
+                    }
+                  },
+                  "required": ["id"]
+                }
+              }
+            },
+            "required": ["name", "projectId", "fields"]
           }
         },
         "required": [
