@@ -402,6 +402,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
 async function main() {
   const PORT = process.env.PORT || 3000;
+  const SERVER_START_TIME = Date.now();
   
   // Session management
   const sessions = new Map<string, { createdAt: number; lastActivity: number }>();
@@ -467,8 +468,14 @@ async function main() {
     
     const session = sessions.get(sessionId);
     if (!session) {
-      console.error(`[Session] Validation failed: Session not found: ${sessionId}`);
-      console.error(`[Session] Current sessions: ${Array.from(sessions.keys()).join(', ')}`);
+      const sessionCount = sessions.size;
+      if (sessionCount === 0) {
+        console.error(`[Session] Validation failed: Session not found (server may have restarted): ${sessionId}`);
+        console.error(`[Session] No active sessions - client should re-initialize`);
+      } else {
+        console.error(`[Session] Validation failed: Session not found: ${sessionId}`);
+        console.error(`[Session] Active sessions (${sessionCount}): ${Array.from(sessions.keys()).slice(0, 3).join(', ')}${sessionCount > 3 ? '...' : ''}`);
+      }
       return false;
     }
     
@@ -492,7 +499,7 @@ async function main() {
     
     // Update last activity
     session.lastActivity = now;
-    console.error(`[Session] Valid and updated: ${sessionId} (age: ${Math.floor((now - session.createdAt) / 60000)}m, last activity: ${Math.floor((now - session.lastActivity) / 1000)}s ago)`);
+    console.error(`[Session] Valid and updated: ${sessionId} (age: ${Math.floor((now - session.createdAt) / 60000)}m)`);
     return true;
   };
 
@@ -581,13 +588,17 @@ async function main() {
           }
 
           if (hasOtherRequests && currentSessionId && !hasInitialize && !validateSessionId(currentSessionId)) {
+            const serverUptimeMinutes = Math.floor((Date.now() - SERVER_START_TIME) / 60000);
             console.error(`[POST /mcp] Invalid or expired session ID: ${currentSessionId}`);
+            console.error(`[POST /mcp] Server uptime: ${serverUptimeMinutes} minutes, Active sessions: ${sessions.size}`);
             res.writeHead(401, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({ 
               jsonrpc: '2.0',
               error: { 
                 code: -32001, 
-                message: 'Invalid or expired session - please re-initialize' 
+                message: sessions.size === 0 
+                  ? 'Session not found - server may have restarted. Please re-initialize.' 
+                  : 'Invalid or expired session - please re-initialize'
               }
             }));
             return;
@@ -788,10 +799,18 @@ async function main() {
   });
 
   httpServer.listen(Number(PORT), () => {
+    const startTime = new Date(SERVER_START_TIME).toISOString();
     console.error(`Allure TestOps MCP Server running on HTTP port ${PORT}`);
+    console.error(`Server started at: ${startTime}`);
     console.error(`Connected to: ${ALLURE_TESTOPS_URL}`);
     console.error(`Project ID: ${PROJECT_ID}`);
     console.error(`Registered ${allTools.length} tools`);
+    console.error('');
+    console.error('=== Session Management ===');
+    console.error(`Max session age: 7 days`);
+    console.error(`Max inactivity: 2 hours`);
+    console.error(`Cleanup job: Every hour`);
+    console.error(`Stats logging: Every 5 minutes`);
     console.error('');
     console.error('=== Streamable HTTP Spec Endpoints ===');
     console.error(`MCP Endpoint: http://localhost:${PORT}/mcp`);
