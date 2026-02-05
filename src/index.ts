@@ -468,6 +468,7 @@ async function main() {
     const session = sessions.get(sessionId);
     if (!session) {
       console.error(`[Session] Validation failed: Session not found: ${sessionId}`);
+      console.error(`[Session] Current sessions: ${Array.from(sessions.keys()).join(', ')}`);
       return false;
     }
     
@@ -491,7 +492,7 @@ async function main() {
     
     // Update last activity
     session.lastActivity = now;
-    console.error(`[Session] Valid and updated: ${sessionId}`);
+    console.error(`[Session] Valid and updated: ${sessionId} (age: ${Math.floor((now - session.createdAt) / 60000)}m, last activity: ${Math.floor((now - session.lastActivity) / 1000)}s ago)`);
     return true;
   };
 
@@ -549,11 +550,24 @@ async function main() {
             return;
           }
 
-          // Validate session for non-initialize requests
+          // Check for initialization request first and create session
           const hasInitialize = messageArray.some((msg: any) => msg.method === 'initialize');
+          let currentSessionId = sessionId;
+
+          // Create session immediately if initialize is present
+          if (hasInitialize) {
+            currentSessionId = nanoid(32);
+            sessions.set(currentSessionId, {
+              createdAt: Date.now(),
+              lastActivity: Date.now(),
+            });
+            console.error(`[POST /mcp] Created new session (pre-processing): ${currentSessionId}`);
+          }
+
+          // Validate session for non-initialize requests
           const hasOtherRequests = messageArray.some((msg: any) => msg.method && msg.method !== 'initialize');
           
-          if (hasOtherRequests && !hasInitialize && !sessionId) {
+          if (hasOtherRequests && !hasInitialize && !currentSessionId) {
             console.error(`[POST /mcp] Missing session ID for non-initialize request`);
             res.writeHead(401, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({ 
@@ -566,8 +580,8 @@ async function main() {
             return;
           }
 
-          if (hasOtherRequests && sessionId && !hasInitialize && !validateSessionId(sessionId)) {
-            console.error(`[POST /mcp] Invalid or expired session ID: ${sessionId}`);
+          if (hasOtherRequests && currentSessionId && !hasInitialize && !validateSessionId(currentSessionId)) {
+            console.error(`[POST /mcp] Invalid or expired session ID: ${currentSessionId}`);
             res.writeHead(401, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({ 
               jsonrpc: '2.0',
@@ -586,20 +600,9 @@ async function main() {
             'Connection': 'keep-alive',
           };
 
-          let newSessionId: string | undefined;
-
-          // Check for initialization to generate session ID
-          for (const message of messageArray) {
-            if (message.method === 'initialize') {
-              newSessionId = nanoid(32);
-              sessions.set(newSessionId, {
-                createdAt: Date.now(),
-                lastActivity: Date.now(),
-              });
-              responseHeaders['Mcp-Session-Id'] = newSessionId;
-              console.error(`[POST /mcp] Created new session: ${newSessionId}`);
-              break;
-            }
+          // Add session ID to response headers if we created a new session
+          if (hasInitialize && currentSessionId) {
+            responseHeaders['Mcp-Session-Id'] = currentSessionId;
           }
 
           res.writeHead(200, responseHeaders);
@@ -612,7 +615,7 @@ async function main() {
               let response: any;
 
               if (message.method === 'initialize') {
-                console.error(`[initialize] Creating new session`);
+                console.error(`[initialize] Using session: ${currentSessionId}`);
                 response = {
                   jsonrpc: '2.0',
                   id: message.id,
@@ -627,7 +630,7 @@ async function main() {
                     },
                   },
                 };
-                console.error(`[initialize] Session ID generated, sent in header`);
+                console.error(`[initialize] Session ID sent in header: ${currentSessionId}`);
                 res.write(`data: ${JSON.stringify(response)}\n\n`);
               } else if (message.method === 'tools/list') {
                 console.error(`[tools/list] Listing ${allTools.length} available tools`);
