@@ -405,7 +405,41 @@ async function main() {
   
   // Session management
   const sessions = new Map<string, { createdAt: number; lastActivity: number }>();
-  const MAX_SESSION_AGE = 24 * 60 * 60 * 1000; // 24 hours
+  const MAX_SESSION_AGE = 7 * 24 * 60 * 60 * 1000; // 7 days (absolute max age)
+  const MAX_INACTIVITY = 2 * 60 * 60 * 1000; // 2 hours (inactivity timeout)
+  
+  // Session cleanup job - runs every hour
+  setInterval(() => {
+    const now = Date.now();
+    let cleaned = 0;
+    
+    for (const [sessionId, session] of sessions.entries()) {
+      if (now - session.createdAt > MAX_SESSION_AGE ||
+          now - session.lastActivity > MAX_INACTIVITY) {
+        sessions.delete(sessionId);
+        cleaned++;
+      }
+    }
+    
+    if (cleaned > 0) {
+      console.error(`[Cleanup] Removed ${cleaned} expired sessions (total remaining: ${sessions.size})`);
+    }
+  }, 60 * 60 * 1000); // Run every hour
+
+  // Session statistics logging - runs every 5 minutes
+  setInterval(() => {
+    const now = Date.now();
+    const stats = {
+      total: sessions.size,
+      active: Array.from(sessions.values()).filter(
+        s => now - s.lastActivity < MAX_INACTIVITY
+      ).length,
+      idle: Array.from(sessions.values()).filter(
+        s => now - s.lastActivity >= MAX_INACTIVITY
+      ).length,
+    };
+    console.error(`[Sessions] Total: ${stats.total}, Active: ${stats.active}, Idle: ${stats.idle}`);
+  }, 5 * 60 * 1000); // Run every 5 minutes
   
   // Validate Origin header to prevent DNS rebinding attacks
   const validateOrigin = (req: http.IncomingMessage, origin?: string): boolean => {
@@ -426,20 +460,38 @@ async function main() {
   };
 
   const validateSessionId = (sessionId?: string): boolean => {
-    if (!sessionId) return false;
+    if (!sessionId) {
+      console.error(`[Session] Validation failed: No session ID provided`);
+      return false;
+    }
     
     const session = sessions.get(sessionId);
-    if (!session) return false;
+    if (!session) {
+      console.error(`[Session] Validation failed: Session not found: ${sessionId}`);
+      return false;
+    }
     
-    // Check if session has expired
     const now = Date.now();
+    
+    // Check absolute age (7 days)
     if (now - session.createdAt > MAX_SESSION_AGE) {
+      const ageHours = Math.floor((now - session.createdAt) / (60 * 60 * 1000));
+      console.error(`[Session] Expired (absolute age ${ageHours}h): ${sessionId}`);
+      sessions.delete(sessionId);
+      return false;
+    }
+    
+    // Check inactivity (2 hours)
+    if (now - session.lastActivity > MAX_INACTIVITY) {
+      const inactiveMinutes = Math.floor((now - session.lastActivity) / (60 * 1000));
+      console.error(`[Session] Expired (inactive ${inactiveMinutes}m): ${sessionId}`);
       sessions.delete(sessionId);
       return false;
     }
     
     // Update last activity
     session.lastActivity = now;
+    console.error(`[Session] Valid and updated: ${sessionId}`);
     return true;
   };
 
@@ -503,20 +555,26 @@ async function main() {
           
           if (hasOtherRequests && !hasInitialize && !sessionId) {
             console.error(`[POST /mcp] Missing session ID for non-initialize request`);
-            res.writeHead(404, { 'Content-Type': 'application/json' });
+            res.writeHead(401, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({ 
               jsonrpc: '2.0',
-              error: { code: -32603, message: 'Session ID required (Mcp-Session-Id header)' }
+              error: { 
+                code: -32001, 
+                message: 'Session ID required - please initialize a new session' 
+              }
             }));
             return;
           }
 
           if (hasOtherRequests && sessionId && !hasInitialize && !validateSessionId(sessionId)) {
             console.error(`[POST /mcp] Invalid or expired session ID: ${sessionId}`);
-            res.writeHead(404, { 'Content-Type': 'application/json' });
+            res.writeHead(401, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({ 
               jsonrpc: '2.0',
-              error: { code: -32603, message: 'Invalid or expired session' }
+              error: { 
+                code: -32001, 
+                message: 'Invalid or expired session - please re-initialize' 
+              }
             }));
             return;
           }
@@ -671,8 +729,12 @@ async function main() {
 
       // Validate session if provided
       if (sessionId && !validateSessionId(sessionId)) {
-        res.writeHead(404, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Session not found' }));
+        res.writeHead(401, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ 
+          error: 'Invalid or expired session',
+          code: -32001,
+          message: 'Please re-initialize your session'
+        }));
         return;
       }
 
