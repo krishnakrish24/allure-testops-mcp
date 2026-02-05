@@ -192,6 +192,63 @@ export class AllureClient {
 
     return response.json() as Promise<T>;
   }
+
+  /**
+   * POST request with single file upload (no info field)
+   * Used for test result attachments
+   */
+  async postSingleFile<T>(
+    path: string,
+    fileData: Buffer | string,
+    fileName: string = 'attachment',
+    params?: Record<string, any>
+  ): Promise<T> {
+    const url = this.buildUrl(path, params);
+
+    // Create multipart form data with only file field
+    const boundary = '----Boundary' + Math.random().toString(36).substr(2, 9);
+    let body = '';
+
+    // Add file field
+    body += `--${boundary}\r\n`;
+    body += `Content-Disposition: form-data; name="file"; filename="${fileName}"\r\n`;
+    body += 'Content-Type: application/octet-stream\r\n\r\n';
+
+    // Combine text and binary parts
+    const textEncoder = new TextEncoder();
+    const textPart = textEncoder.encode(body);
+    const binaryFile = typeof fileData === 'string' ? textEncoder.encode(fileData) : fileData;
+    const footer = textEncoder.encode(`\r\n--${boundary}--`);
+
+    const combinedBody = Buffer.concat([
+      Buffer.from(textPart),
+      Buffer.from(binaryFile),
+      Buffer.from(footer),
+    ]);
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Api-Token ${this.token}`,
+        'Accept': 'application/json',
+        'Content-Type': `multipart/form-data; boundary=${boundary}`,
+      },
+      body: combinedBody,
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`[AllureClient] POST single file ${path} failed:`, {
+        status: response.status,
+        url: url,
+        fileName: fileName,
+        responseText: errorText,
+      });
+      throw new Error(`HTTP ${response.status}: ${errorText}`);
+    }
+
+    return response.json() as Promise<T>;
+  }
 }
 
 export function createAllureClient(baseUrl: string, token: string): AllureClient {
