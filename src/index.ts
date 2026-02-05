@@ -310,6 +310,10 @@ const toolControllers: ToolRegistry[] = [
     handler: handleTestResultCustomFieldControllerTool,
   },
   {
+    tools: testResultAttachmentControllerTools,
+    handler: handleTestResultAttachmentControllerTool,
+  },
+  {
     tools: treeControllerTools,
     handler: handleTreeControllerTool,
   },
