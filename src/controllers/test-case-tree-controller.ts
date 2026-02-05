@@ -127,9 +127,9 @@ export const testCaseTreeControllerTools = [
           },
           "path": {
             "type": "array",
-            "description": "path",
+            "description": "Array of group IDs representing the path in the tree hierarchy",
             "items": {
-              "type": "string"
+              "type": "number"
             }
           },
           "baseRql": {
@@ -138,7 +138,15 @@ export const testCaseTreeControllerTools = [
           },
           "body": {
             "type": "object",
-            "description": "Request body"
+            "description": "Group data. Must contain 'name' field (string, minLength: 1)",
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "Name of the group to create",
+                "minLength": 1
+              }
+            },
+            "required": ["name"]
           }
         },
         "required": [
