@@ -121,7 +121,7 @@ export const testCaseBulkControllerTools = [
     },
     {
       "name": "allure_dragAndDrop_1",
-      "description": "dragAndDrop test cases for trees",
+      "description": "dragAndDrop test cases for trees. IMPORTANT: 'path' must be an array of numeric group IDs (e.g., [1, 2, 3]), NOT string names.",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -131,7 +131,7 @@ export const testCaseBulkControllerTools = [
             "properties": {
               "path": {
                 "type": "array",
-                "description": "Array of group IDs representing the target path",
+                "description": "Array of NUMERIC group IDs (Long/int64) representing the target path. Example: [100, 200]. DO NOT use string names like 'Connectivity' - you must use the numeric group IDs.",
                 "items": {
                   "type": "number"
                 }
