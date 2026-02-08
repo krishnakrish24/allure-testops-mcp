@@ -50,12 +50,14 @@ export const testCaseCustomFieldControllerTools = [
         "type": "object",
         "properties": {
           "testCaseId": {
-            "type": "number",
+            "type": "integer",
+            "format": "int64",
             "description": "Path parameter: testCaseId"
           },
           "body": {
-            "type": "object",
-            "description": "Request body"
+            "type": "array",
+            "description": "Array of CustomFieldWithValuesDto",
+            "items": { "$ref": "#/components/schemas/CustomFieldWithValuesDto" }
           }
         },
         "required": [
